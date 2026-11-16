@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getRecommendations, getContinue } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
+import axios from 'axios';
 
 const TIME_OPTIONS = [5, 10, 15];
 const TOPIC_COLORS = {
@@ -20,48 +19,24 @@ const TOPIC_ICONS = {
 const ALL_TOPICS = ['Sports', 'Study', 'Music', 'Tech', 'Fitness', 'Communication'];
 
 export default function Home() {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  const [selectedTopics, setSelectedTopics] = useState([]);
+  const [selectedTopics, setSelectedTopics] = useState(['Tech', 'Study']);
   const [selectedTime, setSelectedTime] = useState(null);
   const [customTime, setCustomTime] = useState('');
   const [recommendations, setRecommendations] = useState([]);
   const [adaptiveInfo, setAdaptiveInfo] = useState(null);
-  const [continueLesson, setContinueLesson] = useState(null);
   const [customTopic, setCustomTopic] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login');
-    }
-  }, [authLoading, isAuthenticated, router]);
-
-  useEffect(() => {
-    if (user?.interests) {
-      setSelectedTopics(user.interests);
-    }
-    fetchContinue();
-  }, [user]);
-
-  const fetchContinue = async () => {
-    try {
-      const res = await getContinue();
-      setContinueLesson(res.data.lesson);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const fetchRecommendations = async (time, explicitTopic = null) => {
     setLoading(true);
     setRecommendations([]);
     try {
-      const res = await getRecommendations({ 
+      const res = await axios.post('/api/recommend', {
         available_time: time,
         topics: selectedTopics.length > 0 ? selectedTopics : undefined,
-        custom_topic: explicitTopic || customTopic || undefined
+        custom_topic: explicitTopic || customTopic || undefined,
       });
       setRecommendations(res.data.recommendations);
       setAdaptiveInfo(res.data.adaptive_info);
@@ -98,26 +73,28 @@ export default function Home() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* Welcome */}
+      {/* Hero */}
       <div className="mb-10 text-center animate-fade-in">
         <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight mb-2">
-          Hi, {user?.name?.split(' ')[0] || 'Learner'}! 👋
+          Learn anything in minutes ⚡
         </h1>
-        <p className="text-slate-500 font-bold text-xl">What are we learning today on ByteCraft AI?</p>
+        <p className="text-slate-500 font-bold text-xl">
+          AI-generated micro-lessons tailored to your time and interests.
+        </p>
       </div>
 
       <div className="grid md:grid-cols-[1fr_2fr] gap-8">
-        
-        {/* Left Column: Flow Context / Settings */}
+
+        {/* Left Column */}
         <div className="space-y-6">
-          
-          {/* AI Settings / Topics */}
+
+          {/* Topics */}
           <div className="fun-card p-6 bg-purple-50 border-purple-300 animate-scale-in flex flex-col items-center text-center">
             <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
-              <span className="text-2xl animate-float">🤖</span> AI Engine
+              <span className="text-2xl animate-float">🤖</span> Pick Topics
             </h2>
-            <p className="text-sm font-bold text-slate-500 mb-4">Choose what to learn next:</p>
-            
+            <p className="text-sm font-bold text-slate-500 mb-4">Select what you want to learn:</p>
+
             <div className="flex flex-wrap items-center justify-center gap-2 w-full">
               {ALL_TOPICS.map(topic => (
                 <button
@@ -135,21 +112,18 @@ export default function Home() {
             </div>
 
             <div className="mt-4 w-full border-t border-purple-200 pt-4">
-              <p className="text-xs font-bold text-slate-400 mb-2">Or learn something specific:</p>
+              <p className="text-xs font-bold text-slate-400 mb-2">Or enter any topic:</p>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={customTopic}
                   onChange={(e) => setCustomTopic(e.target.value)}
-                  placeholder="Enter any topic..."
+                  placeholder="e.g. Blockchain, Chess..."
                   className="flex-1 px-3 py-2 rounded-xl bg-white border-2 border-slate-200 text-slate-800 font-bold placeholder-slate-400 focus:outline-none focus:border-purple-500 transition-all text-sm"
                 />
                 {customTopic && (
                   <button
-                    onClick={() => {
-                        if (selectedTime) fetchRecommendations(selectedTime);
-                        else setSelectedTime(null);
-                    }}
+                    onClick={() => { if (selectedTime) fetchRecommendations(selectedTime, customTopic); }}
                     className={`btn-fun text-xs px-3 py-1 ${selectedTime ? 'btn-primary' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
                     disabled={!selectedTime}
                   >
@@ -159,15 +133,15 @@ export default function Home() {
               </div>
             </div>
             {selectedTopics.length === 0 && (
-              <p className="text-xs text-orange-500 font-bold mt-2">Select at least one topic for best results!</p>
+              <p className="text-xs text-orange-500 font-bold mt-2">Pick at least one topic for best results!</p>
             )}
           </div>
 
           {/* Time Picker */}
           <div className="fun-card p-6 bg-yellow-50 border-yellow-300 animate-slide-up flex flex-col items-center text-center">
             <div className="text-4xl mb-3 animate-float delay-100">⏳</div>
-            <h2 className="text-xl font-bold text-slate-800 mb-4">Set your Time</h2>
-            
+            <h2 className="text-xl font-bold text-slate-800 mb-4">How much time?</h2>
+
             <div className="flex flex-col gap-3 w-full">
               {TIME_OPTIONS.map(time => (
                 <button
@@ -186,64 +160,40 @@ export default function Home() {
             </div>
 
             <div className="mt-4 w-full">
-               <div className="flex gap-2">
-                 <input
-                   type="number"
-                   value={customTime}
-                   onChange={(e) => setCustomTime(e.target.value)}
-                   placeholder="Custom (m)"
-                   className="flex-1 w-full px-4 py-3 rounded-xl bg-white border-2 border-slate-200 text-slate-800 font-bold placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all text-center"
-                   min="1" max="60"
-                 />
-                 <button
-                   onClick={handleCustomTime}
-                   className="btn-fun btn-primary px-4 shadow-[0_4px_0_0_#2563eb]"
-                 >
-                   Go
-                 </button>
-               </div>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={customTime}
+                  onChange={(e) => setCustomTime(e.target.value)}
+                  placeholder="Custom (min)"
+                  className="flex-1 w-full px-4 py-3 rounded-xl bg-white border-2 border-slate-200 text-slate-800 font-bold placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-all text-center"
+                  min="1" max="60"
+                />
+                <button
+                  onClick={handleCustomTime}
+                  className="btn-fun btn-primary px-4 shadow-[0_4px_0_0_#2563eb]"
+                >
+                  Go
+                </button>
+              </div>
             </div>
-            
+
             <button
-               onClick={() => handleTimeSelect(5)}
-               className="mt-6 w-full btn-fun btn-accent text-sm py-2 px-3 shadow-[0_4px_0_0_#d97706]"
-             >
-               ⚡ Quick 5-min
-             </button>
+              onClick={() => handleTimeSelect(5)}
+              className="mt-6 w-full btn-fun btn-accent text-sm py-2 px-3 shadow-[0_4px_0_0_#d97706]"
+            >
+              ⚡ Quick 5-min
+            </button>
           </div>
         </div>
 
         {/* Right Column: Recommendations */}
         <div className="space-y-6">
-          
-          {/* Continue Learning */}
-          {continueLesson && !loading && recommendations.length === 0 && (
-            <div 
-              className="fun-card p-6 bg-indigo-50 border-indigo-200 animate-slide-up cursor-pointer hover:bg-indigo-100 transition-colors shadow-[0_4px_0_0_#c7d2fe]"
-              onClick={() => router.push(`/lesson/${continueLesson._id}`)}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="inline-block px-3 py-1 bg-indigo-500 text-white font-black text-xs uppercase tracking-wider rounded-xl mb-3 shadow-[0_2px_0_0_#4338ca]">Pick Up Where You Left Off</div>
-                  <div className="text-2xl font-black text-slate-800 leading-tight">{continueLesson.title}</div>
-                  <div className="flex items-center gap-3 mt-3 text-sm font-bold text-slate-500">
-                    <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border-2 border-slate-100">{TOPIC_ICONS[continueLesson.topic]} {continueLesson.topic}</span>
-                    <span className="flex items-center gap-1 bg-white px-2 py-1 rounded-md border-2 border-slate-100">⏱ {continueLesson.duration}m</span>
-                  </div>
-                </div>
-                <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-indigo-500 font-black text-2xl shadow-sm border-2 border-indigo-100">
-                  ▶
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Recommendations Area */}
           <div>
             {!selectedTime && !loading && (
-              <div className="h-48 border-4 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-400 font-bold p-6 text-center">
-                <div className="text-5xl mb-3 opacity-50">👇</div>
-                Select a time limit on the left to see lessons.
+              <div className="h-64 border-4 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-400 font-bold p-6 text-center">
+                <div className="text-6xl mb-4 opacity-40">👈</div>
+                <p className="text-lg">Pick a topic and a time limit to get your personalised lessons.</p>
               </div>
             )}
 
@@ -251,20 +201,20 @@ export default function Home() {
               <div className="text-center py-20 flex flex-col items-center">
                 <div className="text-6xl animate-bounce-subtle mb-4">🤔</div>
                 <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-slate-500 font-bold text-lg">Thinking of the best lessons with ByteCraft AI...</p>
+                <p className="text-slate-500 font-bold text-lg">Generating your lessons with AI...</p>
               </div>
             ) : recommendations.length > 0 ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-2xl font-black text-slate-800">Your Path</h2>
+                  <h2 className="text-2xl font-black text-slate-800">Your Lessons</h2>
                   {adaptiveInfo && (
                     <span className="bg-purple-100 border-2 border-purple-200 text-purple-700 font-bold px-3 py-1 rounded-xl text-sm shadow-sm inline-flex items-center gap-1">
-                      🧠 Auto-adjusted ({adaptiveInfo.target_difficulty})
+                      🧠 {adaptiveInfo.target_difficulty}
                     </span>
                   )}
                 </div>
-                
-                {recommendations.map((lesson, idx) => (
+
+                {recommendations.map((lesson) => (
                   <div
                     key={lesson._id}
                     onClick={() => router.push(`/lesson/${lesson._id}`)}
@@ -272,7 +222,7 @@ export default function Home() {
                   >
                     <div className="flex items-center gap-5">
                       <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shadow-sm border-2 ${TOPIC_COLORS[lesson.topic] || 'bg-slate-100 border-slate-200'}`}>
-                        {TOPIC_ICONS[lesson.topic]}
+                        {TOPIC_ICONS[lesson.topic] || '📚'}
                       </div>
                       <div>
                         <h3 className="text-xl font-bold text-slate-800 mb-1 leading-snug">{lesson.title}</h3>
@@ -287,16 +237,14 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-slate-300 font-black text-2xl pl-2">
-                      ➔
-                    </div>
+                    <div className="text-slate-300 font-black text-2xl pl-2">➔</div>
                   </div>
                 ))}
               </div>
             ) : selectedTime && !loading && (
               <div className="text-center py-20 fun-card bg-slate-50">
                 <div className="text-6xl mb-4 opacity-50">🤷</div>
-                <p className="text-slate-500 font-bold text-lg">No lessons found exactly matching your time.<br/>Try a longer duration!</p>
+                <p className="text-slate-500 font-bold text-lg">Could not generate lessons right now.<br/>Try a different topic or duration.</p>
               </div>
             )}
           </div>
@@ -306,4 +254,3 @@ export default function Home() {
     </div>
   );
 }
-

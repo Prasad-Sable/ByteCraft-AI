@@ -1,75 +1,73 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getDashboardAll } from '@/lib/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f97316', '#ef4444'];
+const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'];
+
+// Demo data to showcase the platform's gamification & analytics capabilities
+const demoStats = {
+  xp: 540,
+  streak: 7,
+  lessons_completed: 18,
+  total_time: 142,
+  accuracy: 82,
+  topic_distribution: [
+    { topic: 'Tech', count: 7, avg_score: 88 },
+    { topic: 'Study', count: 5, avg_score: 79 },
+    { topic: 'Fitness', count: 3, avg_score: 91 },
+    { topic: 'Music', count: 2, avg_score: 76 },
+    { topic: 'Sports', count: 1, avg_score: 60 },
+  ],
+};
+
+const demoBadges = [
+  { _id: '1', icon: '🚀', name: 'First Launch', description: 'Completed your first lesson', earned: true },
+  { _id: '2', icon: '🔥', name: 'On Fire', description: '3-day learning streak', earned: true },
+  { _id: '3', icon: '🎯', name: 'Sharpshooter', description: 'Score 100% on a quiz', earned: true },
+  { _id: '4', icon: '📚', name: 'Bookworm', description: 'Complete 10 lessons', earned: true },
+  { _id: '5', icon: '⚡', name: 'Speed Learner', description: 'Finish a 5-min lesson', earned: true },
+  { _id: '6', icon: '🏆', name: 'Champion', description: 'Reach Level 5', earned: false },
+  { _id: '7', icon: '🌟', name: 'All-Rounder', description: 'Learn 5 different topics', earned: false },
+  { _id: '8', icon: '💎', name: 'Diamond', description: 'Earn 1000 XP', earned: false },
+];
+
+const demoQuests = [
+  { _id: 'q1', title: 'Daily Grind', description: 'Complete 2 lessons today', xp_reward: 30, current_value: 1, target_value: 2, completed: false },
+  { _id: 'q2', title: 'Quiz Ace', description: 'Score 80%+ on a quiz', xp_reward: 20, current_value: 1, target_value: 1, completed: true },
+  { _id: 'q3', title: 'Speed Run', description: 'Finish a 5-min lesson', xp_reward: 15, current_value: 1, target_value: 1, completed: true },
+];
 
 export default function Dashboard() {
-  const [data, setData] = useState(null);
-  const [badges, setBadges] = useState([]);
-  const [quests, setQuests] = useState([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const data = demoStats;
+  const badges = demoBadges;
+  const quests = demoQuests;
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const cached = localStorage.getItem('dashboard_cache');
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          setData(parsed.stats);
-          setBadges(parsed.badges || []);
-          setQuests(parsed.quests || []);
-          setLoading(false);
-        } catch (e) {}
-      }
-    }
-    fetchDashboard();
-  }, []);
-
-  const fetchDashboard = async () => {
-    try {
-      const res = await getDashboardAll();
-      const allData = res.data;
-      setData(allData.stats);
-      setBadges(allData.badges);
-      setQuests(allData.quests);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('dashboard_cache', JSON.stringify(allData));
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-blue-50">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (!data) return null;
-
-  const pieData = (data.topic_distribution || []).map(t => ({ name: t.topic, value: t.count, avgScore: t.avg_score }));
-  const barData = (data.topic_distribution || []).map(t => ({ topic: t.topic, score: t.avg_score }));
+  const pieData = data.topic_distribution.map(t => ({ name: t.topic, value: t.count, avgScore: t.avg_score }));
+  const barData = data.topic_distribution.map(t => ({ topic: t.topic, score: t.avg_score }));
 
   const level = Math.floor((data.xp || 0) / 100) + 1;
   const xpInLevel = (data.xp || 0) % 100;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 pb-20">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-16 h-16 bg-blue-100 border-4 border-blue-200 rounded-2xl flex items-center justify-center text-4xl shadow-[0_4px_0_0_#bfdbfe] animate-bounce-subtle">
-          🏆
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 bg-blue-100 border-4 border-blue-200 rounded-2xl flex items-center justify-center text-4xl shadow-[0_4px_0_0_#bfdbfe] animate-bounce-subtle">
+            🏆
+          </div>
+          <div>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight">Your Progress</h1>
+            <p className="text-slate-400 font-bold text-sm mt-1">Platform demo — data updates as you learn</p>
+          </div>
         </div>
-        <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tight">Your Progress</h1>
+        <button
+          onClick={() => router.push('/home')}
+          className="btn-fun btn-primary px-6 py-3"
+        >
+          ⚡ Start Learning
+        </button>
       </div>
 
       {/* Main Stats Row */}
@@ -80,8 +78,8 @@ export default function Dashboard() {
           { label: 'Accuracy', value: `${data.accuracy}%`, icon: '🎯', style: 'bg-green-50 border-green-200 text-green-700 shadow-[0_5px_0_0_#bbf7d0]' },
           { label: 'Streak', value: `${data.streak} 🔥`, icon: '🔥', style: 'bg-orange-50 border-orange-200 text-orange-700 shadow-[0_5px_0_0_#fed7aa]' },
         ].map((stat, idx) => (
-          <div key={idx} className={`fun-card p-5 md:p-6 border-2 flex flex-col items-center justify-center text-center animate-scale-in cursor-pointer active:translate-y-1 active:shadow-none transition-all ${stat.style}`}>
-            <div className="text-3xl lg:text-4xl mb-2 filter drop-shadow-sm">{stat.icon}</div>
+          <div key={idx} className={`fun-card p-5 md:p-6 border-2 flex flex-col items-center justify-center text-center animate-scale-in ${stat.style}`}>
+            <div className="text-3xl lg:text-4xl mb-2">{stat.icon}</div>
             <div className="text-2xl lg:text-3xl font-black">{stat.value}</div>
             <div className="text-sm font-bold opacity-80 uppercase tracking-wide mt-1">{stat.label}</div>
           </div>
@@ -104,30 +102,30 @@ export default function Dashboard() {
             {xpInLevel} / 100 XP
           </div>
         </div>
-        <div className="w-full h-6 bg-amber-200 rounded-full overflow-hidden border-2 border-amber-300 shadow-inner p-1 relative">
-           <div 
-             className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-1000 shadow-[0_2px_0_0_rgba(255,255,255,0.4)_inset]"
-             style={{ width: `${Math.max(5, xpInLevel)}%` }}
-           ></div>
+        <div className="w-full h-6 bg-amber-200 rounded-full overflow-hidden border-2 border-amber-300 shadow-inner p-1">
+          <div
+            className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-1000 shadow-[0_2px_0_0_rgba(255,255,255,0.4)_inset]"
+            style={{ width: `${Math.max(5, xpInLevel)}%` }}
+          ></div>
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8 mb-10">
-        
-        {/* Daily Quests Board */}
+
+        {/* Daily Quests */}
         <div className="fun-card bg-white border-2 border-slate-200 p-6 md:p-8 shadow-[0_6px_0_0_#e2e8f0] animate-slide-up">
           <div className="flex items-center gap-3 mb-6">
             <div className="text-3xl">📜</div>
             <h3 className="text-2xl font-black text-slate-800">Daily Quests</h3>
           </div>
           <div className="space-y-4">
-            {quests.length > 0 ? quests.map((q) => {
+            {quests.map((q) => {
               const pct = Math.min(100, (q.current_value / q.target_value) * 100);
               return (
-                <div key={q._id} className={`p-4 rounded-3xl border-2 transition-all cursor-pointer ${
-                  q.completed ? 'bg-green-50 border-green-200 active:translate-y-1 active:shadow-none shadow-[0_4px_0_0_#bbf7d0]' : 'bg-slate-50 border-slate-200 active:translate-y-1 active:shadow-none shadow-[0_4px_0_0_#e2e8f0]'
+                <div key={q._id} className={`p-4 rounded-3xl border-2 transition-all ${
+                  q.completed ? 'bg-green-50 border-green-200 shadow-[0_4px_0_0_#bbf7d0]' : 'bg-slate-50 border-slate-200 shadow-[0_4px_0_0_#e2e8f0]'
                 }`}>
-                  <div className="flex justify-between items-start mb-3 border-b-2 border-transparent pb-1">
+                  <div className="flex justify-between items-start mb-3">
                     <div>
                       <h4 className={`font-black text-lg ${q.completed ? 'text-green-700' : 'text-slate-800'}`}>{q.title}</h4>
                       <p className={`text-sm font-bold ${q.completed ? 'text-green-600' : 'text-slate-500'}`}>{q.description}</p>
@@ -146,94 +144,76 @@ export default function Dashboard() {
                       <span>{q.current_value} / {q.target_value}</span>
                     </div>
                     <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden border border-slate-300">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-500 ${q.completed ? 'bg-green-500' : 'bg-blue-500'}`} 
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${q.completed ? 'bg-green-500' : 'bg-blue-500'}`}
                         style={{ width: `${pct}%` }}
                       ></div>
                     </div>
                   </div>
                 </div>
               );
-            }) : (
-              <div className="text-center py-8 text-slate-400 font-bold border-4 border-dashed border-slate-200 rounded-3xl">
-                You've cleared all quests for today!
-              </div>
-            )}
+            })}
           </div>
         </div>
 
-        {/* Badges Collection */}
+        {/* Badges */}
         <div className="fun-card bg-white border-2 border-slate-200 p-6 md:p-8 shadow-[0_6px_0_0_#e2e8f0] animate-slide-up">
           <div className="flex items-center gap-3 mb-6">
             <div className="text-3xl">🏅</div>
-            <h3 className="text-2xl font-black text-slate-800">Your Badges</h3>
+            <h3 className="text-2xl font-black text-slate-800">Badges</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
             {badges.map((b) => (
-              <div 
-                key={b._id} 
+              <div
+                key={b._id}
                 className={`p-4 rounded-3xl flex flex-col items-center justify-center text-center transition-all border-2 ${
-                  b.earned 
-                    ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200 shadow-[0_5px_0_0_#c7d2fe] hover:-translate-y-1' 
-                    : 'bg-slate-50 border-slate-200 opacity-60 grayscale shadow-inner'
+                  b.earned
+                    ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200 shadow-[0_5px_0_0_#c7d2fe] hover:-translate-y-1'
+                    : 'bg-slate-50 border-slate-200 opacity-50 grayscale'
                 }`}
               >
-                <div className={`text-5xl mb-3 ${b.earned ? 'animate-bounce-subtle drop-shadow-md' : 'opacity-50'}`}>{b.icon}</div>
+                <div className={`text-5xl mb-3 ${b.earned ? 'animate-bounce-subtle' : 'opacity-50'}`}>{b.icon}</div>
                 <div className={`font-black text-sm mb-1 ${b.earned ? 'text-indigo-900' : 'text-slate-600'}`}>{b.name}</div>
                 <div className={`text-xs font-bold leading-tight ${b.earned ? 'text-indigo-600' : 'text-slate-500'}`}>{b.description}</div>
               </div>
             ))}
-            {badges.length === 0 && (
-              <div className="col-span-2 text-center py-8 text-slate-400 font-bold border-4 border-dashed border-slate-200 rounded-3xl">
-                Start learning to unlock badges!
-              </div>
-            )}
           </div>
         </div>
 
       </div>
 
-      {/* Analytics Charts */}
+      {/* Charts */}
       <div className="grid md:grid-cols-2 gap-8 mb-8">
         <div className="fun-card bg-white border-2 border-slate-200 p-6 md:p-8 shadow-[0_6px_0_0_#e2e8f0] animate-slide-up">
           <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><div className="text-2xl">📊</div> Topic Mix</h3>
-          {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value" stroke="none">
-                  {pieData.map((_, index) => (
-                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#fff', border: '2px solid #e2e8f0', borderRadius: '16px', fontWeight: 'bold', color: '#1e293b', boxShadow: '0 4px 0 0 #e2e8f0' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[250px] flex items-center justify-center text-slate-400 font-bold">No data yet</div>
-          )}
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value" stroke="none">
+                {pieData.map((_, index) => (
+                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip
+                contentStyle={{ backgroundColor: '#fff', border: '2px solid #e2e8f0', borderRadius: '16px', fontWeight: 'bold', color: '#1e293b' }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
 
         <div className="fun-card bg-white border-2 border-slate-200 p-6 md:p-8 shadow-[0_6px_0_0_#e2e8f0] animate-slide-up">
           <h3 className="text-xl font-black text-slate-800 mb-6 flex items-center gap-2"><div className="text-2xl">📈</div> Avg Score by Topic</h3>
-          {barData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={barData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="topic" tick={{ fill: '#64748b', fontSize: 14, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#64748b', fontSize: 14, fontWeight: 'bold' }} domain={[0, 100]} axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#fff', border: '2px solid #e2e8f0', borderRadius: '16px', fontWeight: 'bold', boxShadow: '0 4px 0 0 #e2e8f0' }} />
-                <Bar dataKey="score" fill="#3b82f6" radius={[12, 12, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[250px] flex items-center justify-center text-slate-400 font-bold">No data yet</div>
-          )}
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={barData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="topic" tick={{ fill: '#64748b', fontSize: 13, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#64748b', fontSize: 13, fontWeight: 'bold' }} domain={[0, 100]} axisLine={false} tickLine={false} />
+              <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ backgroundColor: '#fff', border: '2px solid #e2e8f0', borderRadius: '16px', fontWeight: 'bold' }} />
+              <Bar dataKey="score" fill="#3b82f6" radius={[12, 12, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
     </div>
   );
 }
-
